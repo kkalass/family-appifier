@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config>
+        <!-- Specify the local domain that uses the self-signed certificate -->
+        <domain includeSubdomains="true">immich.home.kalass.de</domain>
+        <trust-anchors>
+            <!-- Add the custom certificate as a trusted CA for this domain -->
+            <certificates src="@raw/immich_ca" />
+            <!-- Also allow system-trusted CAs for standard connections on this domain if any -->
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    <base-config>
+        <trust-anchors>
+            <!-- Maintain default Android security (only trust system-signed certificates for all other domains) -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

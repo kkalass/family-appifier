@@ -8,10 +8,6 @@ import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
 
-# Configuration
-MANIFEST_PATH = "app-immich/src/main/AndroidManifest.xml"
-RES_DIR = "app-immich/src/main/res"
-
 # Standard Android mipmap resolutions
 RESOLUTIONS = {
     "mipmap-mdpi": 48,
@@ -21,18 +17,18 @@ RESOLUTIONS = {
     "mipmap-xxxhdpi": 192
 }
 
-def parse_start_url():
+def parse_start_url(manifest_path):
     """Extracts START_URL from the AndroidManifest.xml meta-data."""
-    if not os.path.exists(MANIFEST_PATH):
-        print(f"Error: Manifest file not found at {MANIFEST_PATH}")
-        sys.exit(1)
+    if not os.path.exists(manifest_path):
+        print(f"Error: Manifest file not found at {manifest_path}")
+        return None
         
     try:
         # Register namespaces to prevent namespace prefix issues in parsing
         ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
         ET.register_namespace("tools", "http://schemas.android.com/tools")
         
-        tree = ET.parse(MANIFEST_PATH)
+        tree = ET.parse(manifest_path)
         root = tree.getroot()
         
         # Search for the START_URL meta-data tag
@@ -45,7 +41,7 @@ def parse_start_url():
         
     # Regex fallback if XML parsing fails due to complex templates
     try:
-        with open(MANIFEST_PATH, "r") as f:
+        with open(manifest_path, "r") as f:
             content = f.read()
         match = re.search(r'android:name="de.kalass.familyappifier.START_URL"\s+android:value="([^"]+)"', content)
         if match:
@@ -73,7 +69,7 @@ def fetch_favicon_url(base_url):
         print(f"Error loading webpage: {e}")
         print("Falling back to default domain root favicon paths.")
         html = ""
-
+ 
     # Parse HTML using regex for link tags containing icons
     icon_urls = []
     # Match `<link ... rel="...icon..." ...>` or similar
@@ -134,7 +130,7 @@ def download_image(url, output_path):
         print(f"Failed to download image: {e}")
         return False
 
-def resize_icon_with_sips(source_path):
+def resize_icon_with_sips(source_path, res_dir):
     """Converts and resizes the source icon to all required Android resolutions using sips."""
     temp_png = "temp_icon_source.png"
     
@@ -159,7 +155,7 @@ def resize_icon_with_sips(source_path):
 
     # Generate the resized icons for each density
     for folder, size in RESOLUTIONS.items():
-        target_dir = os.path.join(RES_DIR, folder)
+        target_dir = os.path.join(res_dir, folder)
         os.makedirs(target_dir, exist_ok=True)
         target_path = os.path.join(target_dir, "ic_launcher.png")
         
@@ -179,15 +175,23 @@ def resize_icon_with_sips(source_path):
         os.remove(temp_png)
     return True
 
-def main():
-    start_url = parse_start_url()
+def process_app_module(app_dir):
+    """Processes a single app module directory to download and resize its launcher icon."""
+    print(f"\n==========================================")
+    print(f"Processing module: {app_dir}")
+    print(f"==========================================")
+    
+    manifest_path = os.path.join(app_dir, "src/main/AndroidManifest.xml")
+    res_dir = os.path.join(app_dir, "src/main/res")
+    
+    start_url = parse_start_url(manifest_path)
     if not start_url:
-        print("Error: Could not retrieve START_URL from Manifest.")
-        sys.exit(1)
+        print(f"Error: Could not retrieve START_URL from Manifest at {manifest_path}")
+        return False
         
     print(f"Target site configured: {start_url}")
     
-    temp_download = "temp_downloaded_icon"
+    temp_download = f"temp_downloaded_icon_{app_dir}"
     favicon_url = fetch_favicon_url(start_url)
     
     # Extract extension or default to .png
@@ -201,16 +205,56 @@ def main():
         os.remove(temp_file)
         
     if download_image(favicon_url, temp_file):
-        success = resize_icon_with_sips(temp_file)
+        success = resize_icon_with_sips(temp_file, res_dir)
         if os.path.exists(temp_file):
             os.remove(temp_file)
             
         if success:
-            print("\n🎉 Success! All Android app launcher icons have been successfully updated using the site's favicon.")
+            print(f"🎉 Success! Launcher icons for {app_dir} have been successfully updated.")
+            return True
         else:
-            print("\n❌ Error: Failed to process and resize the icon images.")
+            print(f"❌ Error: Failed to process and resize the icon images for {app_dir}.")
+            return False
     else:
-        print(f"\n❌ Error: Could not download the favicon from {favicon_url}")
+        print(f"❌ Error: Could not download the favicon from {favicon_url}")
+        return False
+
+def main():
+    # Exclusion list
+    EXCLUDED_MODULES = {"app-vogelchat"}
+    
+    # If target modules are provided as arguments
+    if len(sys.argv) > 1:
+        targets = sys.argv[1:]
+        for target in targets:
+            # Normalize path (remove trailing slashes)
+            target = target.rstrip("/")
+            if target in EXCLUDED_MODULES:
+                print(f"Skipping excluded module: {target}")
+                continue
+            if not os.path.isdir(target):
+                print(f"Error: Directory '{target}' does not exist.")
+                continue
+            process_app_module(target)
+    else:
+        # Auto-detect app-* modules
+        print("No target specified. Scanning for app modules...")
+        app_modules = []
+        for name in os.listdir("."):
+            if os.path.isdir(name) and name.startswith("app-") and name not in EXCLUDED_MODULES:
+                app_modules.append(name)
+        
+        if not app_modules:
+            print("No app modules found to process.")
+            sys.exit(0)
+            
+        print(f"Found modules to process: {', '.join(app_modules)}")
+        success_count = 0
+        for module in app_modules:
+            if process_app_module(module):
+                success_count += 1
+                
+        print(f"\nFinished! Updated {success_count}/{len(app_modules)} modules.")
 
 if __name__ == "__main__":
     main()
