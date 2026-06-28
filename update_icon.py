@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.9"
+# dependencies = [
+#     "pillow>=10.0.0",
+# ]
+# ///
 import os
 import re
 import sys
@@ -7,6 +12,8 @@ import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
 from PIL import Image
+
+
 
 # Standard Android mipmap resolutions
 RESOLUTIONS = {

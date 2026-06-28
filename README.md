@@ -48,16 +48,20 @@ If your site uses a self-signed or local private SSL/TLS certificate:
    ```
 3. The XML profile in `app-immich/src/main/res/xml/network_security_config.xml` is pre-configured to trust `@raw/immich_ca` for requests hitting `immich.home.kalass.de`. If your domain changes, update the domain rules in that file.
 
-### 3. Generate App Launcher Icons from Favicon
-Make sure your target site is running, then execute the helper script at the root directory:
+### 3. Generate App Launcher Icons (Adaptive & Legacy)
+Make sure your target site is running, then execute the helper script using `uv` to automatically fetch/generate adaptive and legacy launcher icons:
 ```bash
-./update_icon.py
+# Process all app modules (except app-vogelchat)
+uv run update_icon.py
+
+# Or target a specific module
+uv run update_icon.py app-immich
 ```
 This script:
-1. Reads `START_URL` from the manifest.
-2. Contacts the site (ignoring self-signed SSL warnings).
-3. Finds the highest resolution PNG favicon.
-4. Uses macOS's native `sips` tool to generate resized `ic_launcher.png` images in all necessary screen densities inside `app-immich/src/main/res/mipmap-*`.
+1. Auto-discovers app modules and parses their configured `START_URL` from their manifest.
+2. Fetches the page favicon/Apple touch icon.
+3. Automatically detects if the icon has transparency or a solid brand background.
+4. Automatically generates modern **Android Adaptive Icons** (`mipmap-anydpi-v26/ic_launcher.xml`, background colors/gradients, and transparent foreground layers scaled to the safe zone) as well as legacy PNG fallbacks across all density folders.
 
 ### 4. Build the App
 Compile and assemble the project debug APK:
@@ -85,7 +89,7 @@ To wrap another website (e.g., a school portal `https://school.portal.de`):
    - The launcher metadata URLs and whitelists.
    - The `@string/app_name` or resources references.
 5. **Adjust SSL Config** (Optional): If the site uses standard public HTTPS, you can delete `app-school/src/main/res/xml/network_security_config.xml` and remove `android:networkSecurityConfig` from the manifest. If it uses a custom SSL cert, place it in `app-school/src/main/res/raw/school_ca.crt` and update `network_security_config.xml` accordingly.
-6. **Generate Icon**: Run `./update_icon.py` (it will work similarly if configured for that module).
+6. **Generate Icon**: Run `uv run update_icon.py app-school` to automatically download the favicon and generate adaptive icons for the new module.
 
 ---
 
