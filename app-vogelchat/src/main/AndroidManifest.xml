@@ -28,7 +28,7 @@
             
             <meta-data
                 android:name="de.kalass.familyappifier.DOMAIN_WHITELIST"
-                android:value="n8n.home.kalass.de,*.n8n.home.kalass.de" />
+                android:value="n8n.home.kalass.de,*.n8n.home.kalass.de,cdn.jsdelivr.net" />
         </activity>
 
     </application>
