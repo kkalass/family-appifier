@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "de.kalass.webviewwrapper.library"
+    namespace = "de.kalass.familyappifier.library"
     compileSdk = 34
 
     defaultConfig {

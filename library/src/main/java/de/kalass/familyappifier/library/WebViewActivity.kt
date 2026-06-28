@@ -1,4 +1,4 @@
-package de.kalass.webviewwrapper.library
+package de.kalass.familyappifier.library
 
 import android.app.DownloadManager
 import android.content.pm.PackageManager
@@ -53,14 +53,14 @@ open class WebViewActivity : AppCompatActivity() {
             var bundle = activityInfo.metaData
 
             // Fallback to application metadata if not found in activity
-            if (bundle == null || !bundle.containsKey("de.kalass.webviewwrapper.START_URL")) {
+            if (bundle == null || !bundle.containsKey("de.kalass.familyappifier.START_URL")) {
                 val appInfo = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
                 bundle = appInfo.metaData
             }
 
             if (bundle != null) {
-                startUrl = bundle.getString("de.kalass.webviewwrapper.START_URL") ?: ""
-                val whitelistStr = bundle.getString("de.kalass.webviewwrapper.DOMAIN_WHITELIST") ?: ""
+                startUrl = bundle.getString("de.kalass.familyappifier.START_URL") ?: ""
+                val whitelistStr = bundle.getString("de.kalass.familyappifier.DOMAIN_WHITELIST") ?: ""
                 if (whitelistStr.isNotEmpty()) {
                     whitelist = whitelistStr.split(",").map { it.trim() }
                 }

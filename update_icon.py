@@ -38,7 +38,7 @@ def parse_start_url():
         # Search for the START_URL meta-data tag
         for meta in root.findall(".//meta-data"):
             name = meta.get("{http://schemas.android.com/apk/res/android}name")
-            if name == "de.kalass.webviewwrapper.START_URL":
+            if name == "de.kalass.familyappifier.START_URL":
                 return meta.get("{http://schemas.android.com/apk/res/android}value")
     except Exception as e:
         print(f"Warning: Failed to parse manifest XML ({e}). Attempting regex fallback.")
@@ -47,7 +47,7 @@ def parse_start_url():
     try:
         with open(MANIFEST_PATH, "r") as f:
             content = f.read()
-        match = re.search(r'android:name="de.kalass.webviewwrapper.START_URL"\s+android:value="([^"]+)"', content)
+        match = re.search(r'android:name="de.kalass.familyappifier.START_URL"\s+android:value="([^"]+)"', content)
         if match:
             return match.group(1)
     except Exception as e:

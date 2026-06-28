@@ -13,6 +13,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "webview-wrapper-parent"
+rootProject.name = "family-appifier"
 include(":library")
 include(":app-immich")

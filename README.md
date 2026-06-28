@@ -1,6 +1,8 @@
-# WebView Wrapper Parent Project
+# Family Appifier
 
-This project provides a secure, lightweight, and restricted Android WebView wrapper template. It is designed to expose specific local or whitelisted websites (such as a self-signed home server or online school platforms) on children's devices without granting them unrestricted web browsing or consuming general Google Chrome app time limits.
+*A 2-hour vibe-coded weekend project to scratch my own itch.*
+
+This project provides a secure, lightweight, and restricted Android WebView wrapper template (specifically designed to complement Google Family Link). It is designed to expose specific local or whitelisted websites (such as a self-signed home server or online school platforms) on children's devices without granting them unrestricted web browsing or consuming general Google Chrome app time limits.
 
 ## Features
 * **Zero-Code Sub-Apps**: All client application modules are thin shells that inherit functionality from the core library, specifying configurations entirely inside their `AndroidManifest.xml` meta-data.
@@ -28,12 +30,12 @@ Open [app-immich's Manifest](app-immich/src/main/AndroidManifest.xml) and adjust
 ```xml
 <!-- Launch URL -->
 <meta-data
-    android:name="de.kalass.webviewwrapper.START_URL"
+    android:name="de.kalass.familyappifier.START_URL"
     android:value="https://immich.home.kalass.de" />
 
 <!-- Comma-separated list of approved domains (supports leading wildcards) -->
 <meta-data
-    android:name="de.kalass.webviewwrapper.DOMAIN_WHITELIST"
+    android:name="de.kalass.familyappifier.DOMAIN_WHITELIST"
     android:value="immich.home.kalass.de,*.immich.home.kalass.de" />
 ```
 
@@ -84,3 +86,10 @@ To wrap another website (e.g., a school portal `https://school.portal.de`):
    - The `@string/app_name` or resources references.
 5. **Adjust SSL Config** (Optional): If the site uses standard public HTTPS, you can delete `app-school/src/main/res/xml/network_security_config.xml` and remove `android:networkSecurityConfig` from the manifest. If it uses a custom SSL cert, place it in `app-school/src/main/res/raw/school_ca.crt` and update `network_security_config.xml` accordingly.
 6. **Generate Icon**: Run `./update_icon.py` (it will work similarly if configured for that module).
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+

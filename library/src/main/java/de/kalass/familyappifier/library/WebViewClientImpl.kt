@@ -1,4 +1,4 @@
-package de.kalass.webviewwrapper.library
+package de.kalass.familyappifier.library
 
 import android.content.Context
 import android.content.Intent

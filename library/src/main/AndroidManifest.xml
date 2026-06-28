@@ -8,7 +8,7 @@
             android:name=".WebViewActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|layoutDirection"
             android:exported="false"
-            android:theme="@style/Theme.WebViewWrapper">
+            android:theme="@style/Theme.FamilyAppifier">
         </activity>
     </application>
 

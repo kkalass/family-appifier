@@ -9,11 +9,11 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.WebViewWrapper">
+        android:theme="@style/Theme.FamilyAppifier">
 
         <!-- Launch the library's WebViewActivity directly! -->
         <activity
-            android:name="de.kalass.webviewwrapper.library.WebViewActivity"
+            android:name="de.kalass.familyappifier.library.WebViewActivity"
             android:exported="true"
             tools:replace="android:exported">
             <intent-filter>
@@ -23,11 +23,11 @@
 
             <!-- Configure Wrapper parameters via Meta-Data -->
             <meta-data
-                android:name="de.kalass.webviewwrapper.START_URL"
+                android:name="de.kalass.familyappifier.START_URL"
                 android:value="https://immich.home.kalass.de" />
             
             <meta-data
-                android:name="de.kalass.webviewwrapper.DOMAIN_WHITELIST"
+                android:name="de.kalass.familyappifier.DOMAIN_WHITELIST"
                 android:value="immich.home.kalass.de,*.immich.home.kalass.de" />
         </activity>
 

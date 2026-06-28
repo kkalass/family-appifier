@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme. -->
-    <style name="Theme.WebViewWrapper" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.FamilyAppifier" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">?android:attr/colorAccent</item>
         <item name="android:statusBarColor">?android:attr/colorBackground</item>
