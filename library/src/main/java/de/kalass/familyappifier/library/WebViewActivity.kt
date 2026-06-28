@@ -74,7 +74,6 @@ open class WebViewActivity : AppCompatActivity() {
         val settings = webView.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-        settings.databaseEnabled = true
         
         // Cache settings - LOAD_DEFAULT uses web cache-control headers automatically
         settings.cacheMode = WebSettings.LOAD_DEFAULT

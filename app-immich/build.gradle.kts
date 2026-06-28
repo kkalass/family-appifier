@@ -2,17 +2,16 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "de.kalass.immichwrapper"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "de.kalass.immichwrapper"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
     }
