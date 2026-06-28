@@ -3,10 +3,10 @@ import os
 import re
 import sys
 import ssl
-import subprocess
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
+from PIL import Image
 
 # Standard Android mipmap resolutions
 RESOLUTIONS = {
@@ -130,50 +130,144 @@ def download_image(url, output_path):
         print(f"Failed to download image: {e}")
         return False
 
-def resize_icon_with_sips(source_path, res_dir):
-    """Converts and resizes the source icon to all required Android resolutions using sips."""
-    temp_png = "temp_icon_source.png"
+def detect_background_color(img):
+    """Detects whether the image is transparent, or has a solid background color."""
+    width, height = img.size
     
-    # Clean up any existing temp files
-    if os.path.exists(temp_png):
-        os.remove(temp_png)
-
-    # Convert source image to PNG format first
-    print("Converting source icon to PNG format...")
-    try:
-        result = subprocess.run(
-            ["sips", "-s", "format", "png", source_path, "--out", temp_png],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE
-        )
-        if result.returncode != 0:
-            print(f"Error converting with sips: {result.stderr.decode()}")
-            return False
-    except Exception as e:
-        print(f"Failed to execute sips tool: {e}")
-        return False
-
-    # Generate the resized icons for each density
-    for folder, size in RESOLUTIONS.items():
-        target_dir = os.path.join(res_dir, folder)
-        os.makedirs(target_dir, exist_ok=True)
-        target_path = os.path.join(target_dir, "ic_launcher.png")
-        
-        print(f"Generating icon: {folder} ({size}x{size}) -> {target_path}")
-        try:
-            subprocess.run(
-                ["sips", "-z", str(size), str(size), temp_png, "--out", target_path],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-        except Exception as e:
-            print(f"Failed to resize icon for {folder}: {e}")
-            return False
+    # Check for transparency (sample pixels across the image)
+    has_transparency = False
+    for x in range(0, width, max(1, width // 20)):
+        for y in range(0, height, max(1, height // 20)):
+            if img.getpixel((x, y))[3] < 220:
+                has_transparency = True
+                break
+        if has_transparency:
+            break
             
-    # Clean up temp files
-    if os.path.exists(temp_png):
-        os.remove(temp_png)
-    return True
+    if has_transparency:
+        return "#ffffff" # Default to white for transparent logos
+        
+    # Not transparent. Sample near the 4 corners to detect a solid background color
+    inset = min(5, width // 20)
+    corners = [
+        img.getpixel((inset, inset)),
+        img.getpixel((width - 1 - inset, inset)),
+        img.getpixel((inset, height - 1 - inset)),
+        img.getpixel((width - 1 - inset, height - 1 - inset))
+    ]
+    
+    # Check if all corners are very similar
+    r_vals = [c[0] for c in corners]
+    g_vals = [c[1] for c in corners]
+    b_vals = [c[2] for c in corners]
+    
+    similar = True
+    for vals in (r_vals, g_vals, b_vals):
+        if max(vals) - min(vals) > 15:
+            similar = False
+            break
+            
+    if similar:
+        # Return average corner color in hex format
+        avg_r = sum(r_vals) // 4
+        avg_g = sum(g_vals) // 4
+        avg_b = sum(b_vals) // 4
+        return f"#{avg_r:02x}{avg_g:02x}{avg_b:02x}"
+        
+    return "#ffffff"
+
+def hex_to_rgb(hex_str):
+    """Converts hex color string to RGB tuple."""
+    hex_str = hex_str.lstrip('#')
+    return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+
+def process_adaptive_icons(source_path, res_dir):
+    """Generates modern Android adaptive icon files and legacy fallbacks."""
+    print("Generating adaptive icons and legacy fallbacks...")
+    try:
+        img = Image.open(source_path).convert("RGBA")
+        width, height = img.size
+        
+        # 1. Detect background color of the source image
+        bg_hex = detect_background_color(img)
+        bg_rgb = hex_to_rgb(bg_hex)
+        print(f"Detected brand background color: {bg_hex}")
+        
+        # 2. Generate values/ic_launcher_background.xml for adaptive background
+        values_dir = os.path.join(res_dir, "values")
+        os.makedirs(values_dir, exist_ok=True)
+        bg_xml_path = os.path.join(values_dir, "ic_launcher_background.xml")
+        with open(bg_xml_path, "w") as f:
+            f.write(f"""<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">{bg_hex}</color>
+</resources>
+""")
+        print(f"Saved background color resource to {bg_xml_path}")
+
+        # 3. Generate mipmap-anydpi-v26 adaptive XML files
+        anydpi_dir = os.path.join(res_dir, "mipmap-anydpi-v26")
+        os.makedirs(anydpi_dir, exist_ok=True)
+        adaptive_xml_content = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+"""
+        for xml_name in ["ic_launcher.xml", "ic_launcher_round.xml"]:
+            xml_path = os.path.join(anydpi_dir, xml_name)
+            with open(xml_path, "w") as f:
+                f.write(adaptive_xml_content)
+        print(f"Saved adaptive icon structures in {anydpi_dir}")
+
+        # 4. Create the adaptive foreground canvas (1024x1024, transparent background)
+        fg_canvas = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+        # Scale the original logo to the central 60% safe zone
+        target_size_fg = 614
+        logo_aspect = width / height
+        if logo_aspect >= 1.0:
+            w_fg = target_size_fg
+            h_fg = int(target_size_fg / logo_aspect)
+        else:
+            h_fg = target_size_fg
+            w_fg = int(target_size_fg * logo_aspect)
+            
+        logo_resized_fg = img.resize((w_fg, h_fg), Image.Resampling.LANCZOS)
+        fg_canvas.paste(logo_resized_fg, (512 - w_fg // 2, 512 - h_fg // 2), logo_resized_fg)
+
+        # 5. Create the legacy fallback canvas (1024x1024, solid background color)
+        legacy_canvas = Image.new("RGBA", (1024, 1024), bg_rgb + (255,))
+        # Scale logo to 80% for legacy icon
+        target_size_leg = 820
+        if logo_aspect >= 1.0:
+            w_leg = target_size_leg
+            h_leg = int(target_size_leg / logo_aspect)
+        else:
+            h_leg = target_size_leg
+            w_leg = int(target_size_leg * logo_aspect)
+            
+        logo_resized_leg = img.resize((w_leg, h_leg), Image.Resampling.LANCZOS)
+        # Use transparent paste mask
+        legacy_canvas.paste(logo_resized_leg, (512 - w_leg // 2, 512 - h_leg // 2), logo_resized_leg)
+
+        # 6. Resize and save both images for all densities
+        for folder, size in RESOLUTIONS.items():
+            target_dir = os.path.join(res_dir, folder)
+            os.makedirs(target_dir, exist_ok=True)
+            
+            # Save legacy icon
+            legacy_resized = legacy_canvas.resize((size, size), Image.Resampling.LANCZOS)
+            legacy_resized.save(os.path.join(target_dir, "ic_launcher.png"), "PNG")
+            
+            # Save adaptive foreground layer
+            fg_resized = fg_canvas.resize((size, size), Image.Resampling.LANCZOS)
+            fg_resized.save(os.path.join(target_dir, "ic_launcher_foreground.png"), "PNG")
+            
+        print("Successfully generated all launcher PNG sizes.")
+        return True
+    except Exception as e:
+        print(f"Error generating adaptive icons: {e}")
+        return False
 
 def process_app_module(app_dir):
     """Processes a single app module directory to download and resize its launcher icon."""
@@ -205,12 +299,12 @@ def process_app_module(app_dir):
         os.remove(temp_file)
         
     if download_image(favicon_url, temp_file):
-        success = resize_icon_with_sips(temp_file, res_dir)
+        success = process_adaptive_icons(temp_file, res_dir)
         if os.path.exists(temp_file):
             os.remove(temp_file)
             
         if success:
-            print(f"🎉 Success! Launcher icons for {app_dir} have been successfully updated.")
+            print(f"🎉 Success! Adaptive launcher icons for {app_dir} have been successfully updated.")
             return True
         else:
             print(f"❌ Error: Failed to process and resize the icon images for {app_dir}.")
