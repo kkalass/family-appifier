@@ -17,3 +17,4 @@ rootProject.name = "family-appifier"
 include(":library")
 include(":app-immich")
 include(":app-vogelchat")
+include(":app-kalli")
