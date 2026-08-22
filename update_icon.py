@@ -68,7 +68,12 @@ def fetch_favicon_url(base_url):
     try:
         req = urllib.request.Request(
             base_url, 
-            headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                # Some sites serve JSON API responses (e.g. a 401) unless the client
+                # asks for HTML - only then do they redirect to their login page.
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
         )
         with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
             html = response.read().decode('utf-8', errors='ignore')
