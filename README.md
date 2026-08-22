@@ -71,6 +71,23 @@ Compile and assemble the project debug APK:
 The resulting APK will be generated at:
 `app-immich/build/outputs/apk/debug/app-immich-debug.apk`
 
+### 5. Install on a Device
+For a regular, unsupervised user, connect the device via USB (with USB debugging enabled) and install directly:
+```bash
+adb install app-immich/build/outputs/apk/debug/app-immich-debug.apk
+```
+
+#### Installing on a Family Link child account
+Child profiles supervised by Family Link have `com.google.android.gms.supervision` as their profile owner, which enforces the `no_install_unknown_sources` and `no_debugging_features` restrictions (inspect them with `adb shell dumpsys user`). As a result `adb install` silently skips those users, and even `adb shell pm install-existing --user <id> <package>` fails with `SecurityException: Shell does not have permission to access user <id>`. The APK has to reach the child profile through the device itself:
+
+1. In the **Family Link** app, allow installation from unknown/third-party sources for the child.
+2. Share the **APK** (not an app bundle) with the child's account, e.g. via Google Drive.
+3. On the device, open the file in Drive or Files, allow unknown sources for that app when prompted, and install.
+4. Revoke the unknown-sources permission on the device again.
+5. Revoke it in Family Link again.
+
+Annoying, but a plain debug build is enough - no Play Store account and no signed release build required.
+
 ---
 
 ## How to Add a New Sub-App Module
