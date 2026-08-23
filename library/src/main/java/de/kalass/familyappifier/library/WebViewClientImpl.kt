@@ -14,28 +14,25 @@ class WebViewClientImpl(
 ) : WebViewClient() {
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-        val url = request.url
-        val host = url.host ?: ""
-        val scheme = url.scheme ?: ""
-
-        if (scheme.equals("http", ignoreCase = true) || scheme.equals("https", ignoreCase = true)) {
-            if (isWhitelisted(host)) {
-                return false // Let WebView load the page
-            } else {
-                // Block navigation and show a Toast warning
-                Toast.makeText(context, "Access restricted: ${host}", Toast.LENGTH_LONG).show()
-                return true // Stop navigation
-            }
-        } else {
-            // Handle non-web schemes (tel:, mailto:, intent:, etc.)
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, url)
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(context, "No app available to handle this request", Toast.LENGTH_SHORT).show()
-            }
-            return true // Handled by sending to external system handler
+        if (isInternal(request.url)) {
+            return false // Let WebView load the page
         }
+        // Everything else leaves the app and becomes the system's business
+        openExternally(context, request.url)
+        return true
+    }
+
+    /**
+     * Whether a URL belongs inside this app: a web URL on a whitelisted host.
+     * Everything else - other hosts as well as tel:, mailto: or intent: links -
+     * is handed to the system instead.
+     */
+    fun isInternal(url: Uri): Boolean {
+        val scheme = url.scheme ?: return false
+        if (!scheme.equals("http", ignoreCase = true) && !scheme.equals("https", ignoreCase = true)) {
+            return false
+        }
+        return isWhitelisted(url.host ?: "")
     }
 
     /**
@@ -48,7 +45,7 @@ class WebViewClientImpl(
             val cleanPattern = pattern.trim()
             if (cleanPattern.startsWith("*.")) {
                 val suffix = cleanPattern.substring(2)
-                if (host.endsWith(suffix, ignoreCase = true) && 
+                if (host.endsWith(suffix, ignoreCase = true) &&
                     (host.length == suffix.length || host[host.length - suffix.length - 1] == '.')) {
                     return true
                 }
@@ -59,5 +56,28 @@ class WebViewClientImpl(
             }
         }
         return false
+    }
+}
+
+/**
+ * Hands a URL to the system so that whichever app is registered for it takes over -
+ * the browser for web links, the dialer for tel:, and so on. Whether the link may
+ * actually be opened is then decided by the usual device rules (Family Link, app
+ * time limits, ...), not by this app.
+ */
+fun openExternally(context: Context, url: Uri) {
+    try {
+        val intent = Intent(Intent.ACTION_VIEW, url).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val scheme = url.scheme ?: ""
+            if (scheme.equals("http", ignoreCase = true) || scheme.equals("https", ignoreCase = true)) {
+                // Marks this as an untrusted link from web content, so that only
+                // apps that opted into handling such links are offered
+                addCategory(Intent.CATEGORY_BROWSABLE)
+            }
+        }
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "No app available to handle this link", Toast.LENGTH_SHORT).show()
     }
 }

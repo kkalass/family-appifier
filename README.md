@@ -6,11 +6,11 @@ This project provides a secure, lightweight, and restricted Android WebView wrap
 
 ## Features
 * **Zero-Code Sub-Apps**: All client application modules are thin shells that inherit functionality from the core library, specifying configurations entirely inside their `AndroidManifest.xml` meta-data.
-* **Domain Whitelisting**: Strict, wildcard-supported whitelist enforcement. Standard web requests to unapproved domains are blocked inside the app, showing warnings.
+* **Domain Whitelisting**: Strict, wildcard-supported whitelist enforcement. The whitelist decides what the app itself renders - it never turns into a general purpose browser.
 * **Self-Signed SSL Support**: Seamlessly trust custom CA/server certificates on a *per-domain basis* via Android’s **Network Security Configuration**, avoiding system-wide certificate installations and keeping global traffic secure.
 * **Session Persistence**: Persistent cookie caching and DOM/Database storage configuration ensures login states are retained across app restarts.
 * **Native Downloads**: Automatically routes web download hooks into Android's native `DownloadManager`, complete with session cookie forwardings.
-* **External Intent Routing**: Redirects system-specific links (like `tel:`, `mailto:`, or custom intents) to corresponding system applications.
+* **External Intent Routing**: Anything that leaves the app is handed to the system: links to non-whitelisted sites (including `target="_blank"` ones) go to the browser, `tel:`, `mailto:` and custom intents to their respective apps. The device's own rules - Family Link policies, app time limits - then decide what actually happens, instead of the wrapper silently swallowing the link.
 * **Favicon Sync Script**: Automatically downloads your target site's favicon and converts/resizes it for all Android screen densities.
 
 ---

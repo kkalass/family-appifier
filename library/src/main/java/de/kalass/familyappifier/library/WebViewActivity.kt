@@ -5,12 +5,15 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.os.Message
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.URLUtil
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -23,6 +26,7 @@ open class WebViewActivity : AppCompatActivity() {
 
     private var startUrl: String = ""
     private var whitelist: List<String> = emptyList()
+    private lateinit var webViewClient: WebViewClientImpl
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,13 +91,18 @@ open class WebViewActivity : AppCompatActivity() {
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
 
+        // Without this, links with target="_blank" are silently dropped instead of
+        // reaching onCreateWindow below
+        settings.setSupportMultipleWindows(true)
+
         // Cookie management
         val cookieManager = CookieManager.getInstance()
         cookieManager.setAcceptCookie(true)
         cookieManager.setAcceptThirdPartyCookies(webView, true)
 
         // Clients
-        webView.webViewClient = WebViewClientImpl(this, whitelist)
+        webViewClient = WebViewClientImpl(this, whitelist)
+        webView.webViewClient = webViewClient
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 if (newProgress == 100) {
@@ -102,6 +111,37 @@ open class WebViewActivity : AppCompatActivity() {
                     progressBar.visibility = View.VISIBLE
                     progressBar.progress = newProgress
                 }
+            }
+
+            override fun onCreateWindow(
+                view: WebView,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message
+            ): Boolean {
+                // A new window never reaches the WebViewClient, and its target URL is
+                // only revealed to the WebView that receives the navigation. So a
+                // throwaway WebView takes the request and applies the same rules:
+                // whitelisted pages stay in the app, everything else goes to the system.
+                val probe = WebView(view.context)
+                probe.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(
+                        probeView: WebView,
+                        request: WebResourceRequest
+                    ): Boolean {
+                        if (webViewClient.isInternal(request.url)) {
+                            webView.loadUrl(request.url.toString())
+                        } else {
+                            openExternally(this@WebViewActivity, request.url)
+                        }
+                        // Destroying it from inside its own callback would crash
+                        view.post { probe.destroy() }
+                        return true
+                    }
+                }
+                (resultMsg.obj as WebView.WebViewTransport).webView = probe
+                resultMsg.sendToTarget()
+                return true
             }
         }
 
