@@ -9,7 +9,7 @@ This project provides a secure, lightweight, and restricted Android WebView wrap
 * **Domain Whitelisting**: Strict, wildcard-supported whitelist enforcement. The whitelist decides what the app itself renders - it never turns into a general purpose browser.
 * **Self-Signed SSL Support**: Seamlessly trust custom CA/server certificates on a *per-domain basis* via Android’s **Network Security Configuration**, avoiding system-wide certificate installations and keeping global traffic secure.
 * **Session Persistence**: Persistent cookie caching and DOM/Database storage configuration ensures login states are retained across app restarts.
-* **Native Downloads**: Automatically routes web download hooks into Android's native `DownloadManager`, complete with session cookie forwardings.
+* **Downloads**: Files the site offers for download - including files a page generates itself as `blob:` or `data:` URLs, e.g. zip archives or exports, also when it opens them in a new window - are saved to the device's Downloads folder by the app itself, with the session cookies, and can be opened right away. Android's `DownloadManager` is not used: it downloads in a system process that neither trusts the app's custom certificates nor sees the page's `blob:` URLs.
 * **External Intent Routing**: Anything that leaves the app is handed to the system: links to non-whitelisted sites (including `target="_blank"` ones) go to the browser, `tel:`, `mailto:` and custom intents to their respective apps. The device's own rules - Family Link policies, app time limits - then decide what actually happens, instead of the wrapper silently swallowing the link.
 * **Favicon Sync Script**: Automatically downloads your target site's favicon and converts/resizes it for all Android screen densities.
 
@@ -17,7 +17,7 @@ This project provides a secure, lightweight, and restricted Android WebView wrap
 
 ## Project Structure
 
-* **`library/`**: The core Android Library module containing `WebViewActivity`, `WebViewClientImpl`, default themes, layout, and logic.
+* **`library/`**: The core Android Library module containing `WebViewActivity`, `WebViewClientImpl`, `Downloads`, default themes, layout, and logic.
 * **`app-immich/`**: An example shell module configuring a wrapper for the Immich home photo/video server.
 
 ---

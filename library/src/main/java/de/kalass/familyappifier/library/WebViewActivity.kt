@@ -1,14 +1,10 @@
 package de.kalass.familyappifier.library
 
-import android.app.DownloadManager
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.os.Message
 import android.view.View
 import android.webkit.CookieManager
-import android.webkit.URLUtil
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -27,6 +23,7 @@ open class WebViewActivity : AppCompatActivity() {
     private var startUrl: String = ""
     private var whitelist: List<String> = emptyList()
     private lateinit var webViewClient: WebViewClientImpl
+    private lateinit var downloads: Downloads
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,10 +126,13 @@ open class WebViewActivity : AppCompatActivity() {
                         probeView: WebView,
                         request: WebResourceRequest
                     ): Boolean {
-                        if (webViewClient.isInternal(request.url)) {
-                            webView.loadUrl(request.url.toString())
-                        } else {
-                            openExternally(this@WebViewActivity, request.url)
+                        val url = request.url
+                        when {
+                            // There is no second window to show it in, and loading it here
+                            // would replace the page that generated it - so save it instead
+                            isPageContent(url) -> downloads.save(url.toString())
+                            webViewClient.isInternal(url) -> webView.loadUrl(url.toString())
+                            else -> openExternally(this@WebViewActivity, url)
                         }
                         // Destroying it from inside its own callback would crash
                         view.post { probe.destroy() }
@@ -146,32 +146,8 @@ open class WebViewActivity : AppCompatActivity() {
         }
 
         // Downloads integration
-        webView.setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
-            try {
-                val uri = Uri.parse(url)
-                val request = DownloadManager.Request(uri).apply {
-                    setMimeType(mimetype)
-                    val filename = URLUtil.guessFileName(url, contentDisposition, mimetype)
-                    setTitle(filename)
-                    setDescription("Downloading file...")
-                    setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
-
-                    // Forward current session cookies to the download request
-                    val cookies = CookieManager.getInstance().getCookie(url)
-                    if (cookies != null) {
-                        addRequestHeader("Cookie", cookies)
-                    }
-                    addRequestHeader("User-Agent", userAgent)
-                }
-
-                val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-                downloadManager.enqueue(request)
-                Toast.makeText(this, "Download started...", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(this, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
+        downloads = Downloads(this, webView)
+        webView.setDownloadListener(downloads)
     }
 
     private fun setupBackNavigation() {

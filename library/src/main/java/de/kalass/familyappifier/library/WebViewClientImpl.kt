@@ -22,17 +22,22 @@ class WebViewClientImpl(
         return true
     }
 
+    override fun onPageFinished(view: WebView, url: String?) {
+        super.onPageFinished(view, url)
+        view.evaluateJavascript(Downloads.PAGE_SCRIPT, null)
+    }
+
     /**
-     * Whether a URL belongs inside this app: a web URL on a whitelisted host.
-     * Everything else - other hosts as well as tel:, mailto: or intent: links -
-     * is handed to the system instead.
+     * Whether a URL belongs inside this app: a web URL on a whitelisted host, or
+     * content a page generated itself. Everything else - other hosts as well as
+     * tel:, mailto: or intent: links - is handed to the system instead.
      */
-    fun isInternal(url: Uri): Boolean {
-        val scheme = url.scheme ?: return false
-        if (!scheme.equals("http", ignoreCase = true) && !scheme.equals("https", ignoreCase = true)) {
-            return false
-        }
-        return isWhitelisted(url.host ?: "")
+    fun isInternal(url: Uri): Boolean = when {
+        // No other app could read these; the WebView shows them or reports a download
+        isPageContent(url) -> true
+        url.scheme.equals("http", ignoreCase = true) || url.scheme.equals("https", ignoreCase = true) ->
+            isWhitelisted(url.host ?: "")
+        else -> false
     }
 
     /**
@@ -58,6 +63,10 @@ class WebViewClientImpl(
         return false
     }
 }
+
+/** Content a page generated itself, which only exists inside the WebView */
+fun isPageContent(url: Uri): Boolean =
+    url.scheme.equals("blob", ignoreCase = true) || url.scheme.equals("data", ignoreCase = true)
 
 /**
  * Hands a URL to the system so that whichever app is registered for it takes over -
