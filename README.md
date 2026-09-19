@@ -83,6 +83,8 @@ Then build all apps with `./gradlew assembleRelease`; the APKs end up in `app-*/
 
 Android only installs an update signed with the same key as the installed app. Switching an app between debug and release builds therefore means uninstalling it first, which also clears its login - and so would losing the key, so keep a backup of it.
 
+This applies to the whole device: an app exists only once, with one signature, across all user profiles. Uninstalling it in a child profile leaves the copies in other profiles - e.g. one installed via `adb` in the parent's profile - and as long as any of them has a different signature, the install fails with nothing but a generic "App not installed". Remove it from every profile first (in the main profile: *Settings → Apps → the app → ⋮ → Uninstall for all users*, or `adb uninstall <package>`).
+
 ### 5. Install on a Device
 For a regular, unsupervised user, connect the device via USB (with USB debugging enabled) and install directly:
 ```bash
