@@ -71,6 +71,18 @@ Compile and assemble the project debug APK:
 The resulting APK will be generated at:
 `app-immich/build/outputs/apk/debug/app-immich-debug.apk`
 
+#### Release builds
+Release builds are minified and signed with your own key. Describe the key in a `keystore.properties` file in the project root - it is ignored by git, as it holds the passwords:
+```properties
+storeFile=../family-appify-keystore.jks
+keyAlias=immich
+storePassword=...
+keyPassword=...
+```
+Then build all apps with `./gradlew assembleRelease`; the APKs end up in `app-*/build/outputs/apk/release/`. Without `keystore.properties`, release builds stay unsigned and cannot be installed.
+
+Android only installs an update signed with the same key as the installed app. Switching an app between debug and release builds therefore means uninstalling it first, which also clears its login - and so would losing the key, so keep a backup of it.
+
 ### 5. Install on a Device
 For a regular, unsupervised user, connect the device via USB (with USB debugging enabled) and install directly:
 ```bash
@@ -86,7 +98,7 @@ Child profiles supervised by Family Link have `com.google.android.gms.supervisio
 4. Revoke the unknown-sources permission on the device again.
 5. Revoke it in Family Link again.
 
-Annoying, but a plain debug build is enough - no Play Store account and no signed release build required.
+Annoying, but no Play Store account is required - a self-signed release build or even a plain debug build is enough.
 
 ---
 

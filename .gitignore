@@ -24,3 +24,6 @@ Thumbs.db
 *.log
 temp_*
 .gemini
+
+# Signing key passwords for release builds
+/keystore.properties
